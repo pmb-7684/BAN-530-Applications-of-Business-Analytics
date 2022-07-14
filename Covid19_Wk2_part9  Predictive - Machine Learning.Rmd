@@ -1,0 +1,132 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+
+#   BAN 530 - Capstone
+##  McCree-Bailey,Paula
+### Week 4 - Clutering, etc
+
+
+```{r}
+options(tidyverse.quiet = TRUE)
+library(tidyverse)
+library(caret)        #for splitting functions
+library(rpart)        #for classification trees
+library(RColorBrewer) #better visualization of classification trees
+library(rattle)       #better visualization of classification trees
+library(ranger)       #for random forests
+library(readxl)
+
+covid_data_R_clean1 <- read_xlsx("covid-data_R_clean.xlsx", 
+    col_types = c("text", "text", "text", 
+        "date", "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "skip", "skip", "skip", "skip", "skip", 
+        "skip", "skip", "skip", "skip", "numeric", 
+        "numeric", "skip", "numeric", "numeric", 
+        "skip", "numeric", "skip", "numeric", "numeric", 
+        "skip", "skip", "skip", "numeric", "numeric", 
+        "numeric"))
+
+#View(covid_data_R_clean)
+```
+
+
+```{r}
+covid_data_R_clean_FINAL1 <- covid_data_R_clean1
+
+#summary(covid_data_R_clean_FINAL1)
+```
+
+
+```{r}
+covid_data_R_clean_FINAL1$total_cases <- covid_data_R_clean1$total_cases %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_cases <- covid_data_R_clean1$new_cases %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_cases_smoothed <- covid_data_R_clean1$new_cases_smoothed %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$total_deaths <- covid_data_R_clean1$total_deaths %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_deaths <- covid_data_R_clean1$new_deaths %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_deaths_smoothed <- covid_data_R_clean1$new_deaths_smoothed %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$total_cases_per_million <- covid_data_R_clean1$total_cases_per_million %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_cases_per_million <- covid_data_R_clean1$new_cases_per_million %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_cases_smoothed_per_million<- covid_data_R_clean1$new_cases_smoothed_per_million %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$total_deaths_per_million <- covid_data_R_clean1$total_deaths_per_million %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_deaths_per_million <- covid_data_R_clean1$new_deaths_per_million %>% replace_na(0)
+
+covid_data_R_clean_FINAL1$new_deaths_smoothed_per_million <- covid_data_R_clean1$new_deaths_smoothed_per_million %>% replace_na(0)
+
+```
+
+
+```{r}
+View(covid_data_R_clean_FINAL1)
+#summary(covid_data_R_clean_FINAL1)
+```
+
+```{r remove rows with NA}
+
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL1 %>% drop_na(stringency_index) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(median_age) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(aged_65_older) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(gdp_per_capita) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(cardiovasc_death_rate) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(diabetes_prevalence) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(hospital_beds_per_thousand) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(life_expectancy) 
+covid_data_R_clean_FINAL2 <- covid_data_R_clean_FINAL2 %>% drop_na(human_development_index) 
+
+summary(covid_data_R_clean_FINAL2)
+
+```
+
+
+# ----- MACHINE LEARNING --------------------
+
+```{r}
+test_grp = covid_data_R_clean_FINAL2 %>%dplyr::select(-c(iso_code, continent, date, new_cases_smoothed, total_deaths, new_deaths_smoothed,total_cases, new_deaths, total_cases_per_million, new_cases_per_million, new_cases_smoothed_per_million, total_deaths_per_million, new_deaths_per_million, new_deaths_smoothed, new_deaths_smoothed_per_million,location ))
+```
+
+
+```{r  split data}
+set.seed(1234)        #important to replicate data
+
+train.rows = createDataPartition(y = test_grp$new_cases, p=0.7, list = FALSE) 
+
+train = slice(test_grp, train.rows)
+test = slice(test_grp, -train.rows)
+```
+
+# RANDOM FOREST
+#Create a random forest model on the training set to predict DonatedMarch using all of the variables
+
+```{r Random forest Create a random forest model on the training set}
+
+fit_control = trainControl(method = "cv",  
+                           number = 10) #set up 10 fold cross-validation
+set.seed(123)  
+
+rf_fit = train(x=test_grp[,-5], y=test_grp$new_cases,
+                 method = "ranger", 
+                 importance = "permutation",
+                 num.trees = 100,
+                 trControl = fit_control) = rpart(test_grp$new_cases~., train, method="class")
+fancyRpartPlot(tree1)
+```
+
+
+
+
+
